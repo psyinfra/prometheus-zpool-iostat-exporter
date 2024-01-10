@@ -78,6 +78,17 @@ class TimeMetric(FloatMetric):
         super().__post_init__()
 
 
+@dataclass
+class HistogramMetric(Metric):
+    buckets: list
+    value: list
+
+    def __post_init__(self):
+        self.buckets = [str(float(bucket)*1e-9) for bucket in self.buckets]
+        self.value = [float(value) for value in self.value]
+        super().__post_init__()
+
+
 """
 Parsed output from `zpool list -H -p`
 """
@@ -359,3 +370,187 @@ class TrimQPend(IntMetric):
 class TrimQActiv(IntMetric):
     name: ClassVar[str] = f'{EXPORTER_PREFIX}_trimq_active_count'
     doc: ClassVar[str] = 'Current number of active entries in trim queue.'
+
+
+"""
+Latency histograms from `zpool iostat -w -p -H`
+"""
+
+
+@dataclass
+class LatencyTotalWaitRead(HistogramMetric):
+    name: ClassVar[str] = f'{EXPORTER_PREFIX}_latency_total_wait_read_seconds'
+    doc: ClassVar[str] = (
+        'Latency histogram for total read I/O time (queuing + disk I/O '
+        'time)')
+
+
+@dataclass
+class LatencyTotalWaitWrite(HistogramMetric):
+    name: ClassVar[str] = f'{EXPORTER_PREFIX}_latency_total_wait_write_seconds'
+    doc: ClassVar[str] = (
+        'Latency histogram for total write I/O time (queuing + disk I/O '
+        'time)')
+
+
+@dataclass
+class LatencyDiskWaitRead(HistogramMetric):
+    name: ClassVar[str] = f'{EXPORTER_PREFIX}_latency_disk_wait_read_seconds'
+    doc: ClassVar[str] = (
+        'Latency histogram for disk read I/O time (time reading the disk)')
+
+
+@dataclass
+class LatencyDiskWaitWrite(HistogramMetric):
+    name: ClassVar[str] = f'{EXPORTER_PREFIX}_latency_disk_wait_write_seconds'
+    doc: ClassVar[str] = (
+        'Latency histogram for disk write I/O time (time writing to the disk)')
+
+
+@dataclass
+class LatencySyncQWaitRead(HistogramMetric):
+    name: ClassVar[str] = f'{EXPORTER_PREFIX}_latency_syncq_wait_read_seconds'
+    doc: ClassVar[str] = (
+        'Latency histogram for amount of time read I/O spent in synchronous '
+        'priority queues. Does not include disk time')
+
+
+@dataclass
+class LatencySyncQWaitWrite(HistogramMetric):
+    name: ClassVar[str] = f'{EXPORTER_PREFIX}_latency_syncq_wait_write_seconds'
+    doc: ClassVar[str] = (
+        'Latency histogram for amount of time write I/O spent in synchronous '
+        'priority queues. Does not include disk time')
+
+
+@dataclass
+class LatencyAsyncQWaitRead(HistogramMetric):
+    name: ClassVar[str] = f'{EXPORTER_PREFIX}_latency_asyncq_wait_read_seconds'
+    doc: ClassVar[str] = (
+        'Latency histogram for amount of time read I/O spent in asynchronous '
+        'priority queues. Does not include disk time')
+
+
+@dataclass
+class LatencyAsyncQWaitWrite(HistogramMetric):
+    name: ClassVar[str] = (
+            f'{EXPORTER_PREFIX}_latency_asyncq_wait_write_seconds')
+    doc: ClassVar[str] = (
+        'Latency histogram for amount of time write I/O spent in '
+        'asynchronous priority queues. Does not include disk time')
+
+
+@dataclass
+class LatencyScrub(HistogramMetric):
+    name: ClassVar[str] = f'{EXPORTER_PREFIX}_latency_scrub_seconds'
+    doc: ClassVar[str] = (
+        'Latency histogram for queuing time in scrub queue. Does not '
+        'include disk time')
+
+
+@dataclass
+class LatencyTrim(HistogramMetric):
+    name: ClassVar[str] = f'{EXPORTER_PREFIX}_latency_trim_seconds'
+    doc: ClassVar[str] = (
+        'Latency histogram for queuing time in trim queue. Does not include '
+        'disk time')
+
+
+"""
+Request size histograms from `zpool iostat -r -p -H`
+"""
+
+
+@dataclass
+class RequestSizeSyncReadIndividual(HistogramMetric):
+    name: ClassVar[str] = (
+        f'{EXPORTER_PREFIX}_requestsize_sync_read_individual_bytes')
+    doc: ClassVar[str] = (
+        'Request size histogram for individual synchronous read I/O')
+
+
+@dataclass
+class RequestSizeSyncReadAggregate(HistogramMetric):
+    name: ClassVar[str] = (
+        f'{EXPORTER_PREFIX}_requestsize_sync_read_aggregate_bytes')
+    doc: ClassVar[str] = (
+        'Request size histogram for aggregate synchronous read I/O')
+
+
+@dataclass
+class RequestSizeSyncWriteIndividual(HistogramMetric):
+    name: ClassVar[str] = (
+        f'{EXPORTER_PREFIX}_requestsize_sync_write_individual_bytes')
+    doc: ClassVar[str] = (
+        'Request size histogram for individual synchronous write I/O')
+
+
+@dataclass
+class RequestSizeSyncWriteAggregate(HistogramMetric):
+    name: ClassVar[str] = (
+        f'{EXPORTER_PREFIX}_requestsize_sync_write_aggregate_bytes')
+    doc: ClassVar[str] = (
+        'Request size histogram for aggregate synchronous write I/O')
+
+@dataclass
+class RequestSizeASyncReadIndividual(HistogramMetric):
+    name: ClassVar[str] = (
+        f'{EXPORTER_PREFIX}_requestsize_async_read_individual_bytes')
+    doc: ClassVar[str] = (
+        'Request size histogram for individual asynchronous I/O')
+
+
+@dataclass
+class RequestSizeASyncReadAggregate(HistogramMetric):
+    name: ClassVar[str] = (
+        f'{EXPORTER_PREFIX}_requestsize_async_read_aggregate_bytes')
+    doc: ClassVar[str] = (
+        'Request size histogram for aggregate asynchronous I/O')
+
+
+@dataclass
+class RequestSizeASyncWriteIndividual(HistogramMetric):
+    name: ClassVar[str] = (
+        f'{EXPORTER_PREFIX}_requestsize_sync_write_individual_bytes')
+    doc: ClassVar[str] = (
+        'Request size histogram for individual asynchronous write I/O')
+
+
+@dataclass
+class RequestSizeASyncWriteAggregate(HistogramMetric):
+    name: ClassVar[str] = (
+        f'{EXPORTER_PREFIX}_requestsize_async_write_aggregate_bytes')
+    doc: ClassVar[str] = (
+        'Request size histogram for aggregate asynchronous write I/O')
+
+
+@dataclass
+class RequestSizeScrubIndividual(HistogramMetric):
+    name: ClassVar[str] = (
+        f'{EXPORTER_PREFIX}_requestsize_scrub_individual_bytes')
+    doc: ClassVar[str] = (
+        'Request size histogram for individual scrub I/O')
+
+
+@dataclass
+class RequestSizeScrubAggregate(HistogramMetric):
+    name: ClassVar[str] = (
+        f'{EXPORTER_PREFIX}_requestsize_scrub_aggregate_bytes')
+    doc: ClassVar[str] = (
+        'Request size histogram for aggregate scrub I/O')
+
+
+@dataclass
+class RequestSizeTrimIndividual(HistogramMetric):
+    name: ClassVar[str] = (
+        f'{EXPORTER_PREFIX}_requestsize_trim_individual_bytes')
+    doc: ClassVar[str] = (
+        'Request size histogram for individual trim I/O')
+
+
+@dataclass
+class RequestSizeTrimAggregate(HistogramMetric):
+    name: ClassVar[str] = (
+        f'{EXPORTER_PREFIX}_requestsize_trim_aggregate_bytes')
+    doc: ClassVar[str] = (
+        'Request size histogram for aggregate trim I/O')

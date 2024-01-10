@@ -205,3 +205,21 @@ zpool_iostat_trimq_pending_count{pool="rpool"} 0.0
 zpool_iostat_trimq_active_count{pool="bpool"} 0.0
 zpool_iostat_trimq_active_count{pool="rpool"} 0.0
 ```
+
+### Example including histograms
+```commandline
+prometheus_zpool_iostat_exporter --web.listen-address :10007 --latency-histogram
+```
+
+Exports the output from `zpool list -H -p` and `zpool iostat -w -p -H`.
+
+```commandline
+prometheus_zpool_iostat_exporter --web.listen-address :10007 --latency-histogram
+```
+Exports the output from `zpool list -H -p` and `zpool iostat -r -p -H`.
+
+The output is too large for an example, as each of the metrics (e.g., 
+individual and aggregate (a)synchronous read and write I/O request size, as 
+well as total, disk, (a)sychronous queue read and write latency) returns 
+numerous buckets.
+

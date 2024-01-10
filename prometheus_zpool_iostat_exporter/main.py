@@ -34,6 +34,20 @@ def parse_args():
         action='store_true',
         help='Include active queue statistics (see: zpool iostat -q)')
     parser.add_argument(
+        '--latency-histogram',
+        dest='latency_histogram',
+        default=False,
+        action='store_true',
+        help='Include latency histograms (see: zpool iostat -w)')
+    parser.add_argument(
+        '--request-size-histogram',
+        dest='request_size_histogram',
+        default=False,
+        action='store_true',
+        help=(
+            'Include request size histograms for the leaf vdev\'s I/O (see: '
+            'zpool iostat -r)'))
+    parser.add_argument(
         '-l', '--log',
         dest='log_level',
         required=False,
@@ -55,7 +69,9 @@ def main():
         port = listen_addr.port if listen_addr.port else DEFAULT_PORT
         REGISTRY.register(ZPoolIOStatExporter(
             latency=args.latency,
-            queue=args.queue))
+            queue=args.queue,
+            latency_histogram=args.latency_histogram,
+            request_size_histogram=args.request_size_histogram))
         start_http_server(port, addr=addr)
         logger.info(f'Listening on {listen_addr.netloc}')
     except KeyboardInterrupt:
