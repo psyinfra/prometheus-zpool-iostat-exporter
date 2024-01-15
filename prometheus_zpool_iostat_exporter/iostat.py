@@ -1,6 +1,9 @@
 from dataclasses import dataclass, fields
 from typing import ClassVar
 
+from prometheus_client.core import (
+    GaugeMetricFamily, CounterMetricFamily, HistogramMetricFamily)
+
 from . import logger, EXPORTER_PREFIX
 
 
@@ -8,8 +11,9 @@ from . import logger, EXPORTER_PREFIX
 class Metric:
     pool: str
     value: int
-    name: ClassVar[str] = 'test'
-    doc: ClassVar[str] = 'test'
+    name: ClassVar[str]
+    doc: ClassVar[str]
+    family: ClassVar[type] = GaugeMetricFamily
 
     def _convert_field_types(self):
         for field in fields(self):
@@ -82,6 +86,7 @@ class TimeMetric(FloatMetric):
 class HistogramMetric(Metric):
     buckets: list
     value: list
+    family: ClassVar[type] = HistogramMetricFamily
 
     def __post_init__(self):
         self.buckets = [str(float(bucket)*1e-9) for bucket in self.buckets]
@@ -178,12 +183,14 @@ class OperationsRead(IntMetric):
     doc: ClassVar[str] = (
             'Number of read I/O operations sent to the pool, including '
             'metadata requests')
+    family: ClassVar[type] = CounterMetricFamily
 
 
 @dataclass
 class OperationsWrite(IntMetric):
     name: ClassVar[str] = f'{EXPORTER_PREFIX}_operations_write_count'
     doc: ClassVar[str] = 'Number of write I/O operations sent to the pool'
+    family: ClassVar[type] = CounterMetricFamily
 
 
 @dataclass
@@ -192,6 +199,7 @@ class BandwidthRead(IntMetric):
     doc: ClassVar[str] = (
             'Bandwidth of all read operations (including metadata) as units '
             'per second')
+    family: ClassVar[type] = CounterMetricFamily
 
 
 @dataclass
@@ -199,6 +207,7 @@ class BandwidthWrite(IntMetric):
     name: ClassVar[str] = f'{EXPORTER_PREFIX}_bandwidth_write_count'
     doc: ClassVar[str] = (
             'Bandwidth of all write operations as units per second')
+    family: ClassVar[type] = CounterMetricFamily
 
 
 """
@@ -491,6 +500,7 @@ class RequestSizeSyncWriteAggregate(HistogramMetric):
         f'{EXPORTER_PREFIX}_requestsize_sync_write_aggregate_bytes')
     doc: ClassVar[str] = (
         'Request size histogram for aggregate synchronous write I/O')
+
 
 @dataclass
 class RequestSizeASyncReadIndividual(HistogramMetric):

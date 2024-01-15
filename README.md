@@ -79,19 +79,19 @@ zpool_iostat_capacity_allocated_bytes{pool="rpool"} 7.8993768448e+010
 zpool_iostat_capacity_free_bytes{pool="bpool"} 8.80402432e+08
 zpool_iostat_capacity_free_bytes{pool="rpool"} 1.776432103424e+012
 # HELP zpool_iostat_operations_read_count Number of read I/O operations sent to the pool, including metadata requests
-# TYPE zpool_iostat_operations_read_count gauge
+# TYPE zpool_iostat_operations_read_count counter
 zpool_iostat_operations_read_count{pool="bpool"} 0.0
 zpool_iostat_operations_read_count{pool="rpool"} 4.0
 # HELP zpool_iostat_operations_write_count Number of write I/O operations sent to the pool
-# TYPE zpool_iostat_operations_write_count gauge
+# TYPE zpool_iostat_operations_write_count counter
 zpool_iostat_operations_write_count{pool="bpool"} 0.0
 zpool_iostat_operations_write_count{pool="rpool"} 82.0
 # HELP zpool_iostat_bandwidth_read_count Bandwidth of all read operations (including metadata) as units per second
-# TYPE zpool_iostat_bandwidth_read_count gauge
+# TYPE zpool_iostat_bandwidth_read_count counter
 zpool_iostat_bandwidth_read_count{pool="bpool"} 110.0
 zpool_iostat_bandwidth_read_count{pool="rpool"} 65426.0
 # HELP zpool_iostat_bandwidth_write_count Bandwidth of all write operations as units per second
-# TYPE zpool_iostat_bandwidth_write_count gauge
+# TYPE zpool_iostat_bandwidth_write_count counter
 zpool_iostat_bandwidth_write_count{pool="bpool"} 183.0
 zpool_iostat_bandwidth_write_count{pool="rpool"} 1.445709e+06
 ```

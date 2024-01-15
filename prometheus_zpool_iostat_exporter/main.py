@@ -82,7 +82,11 @@ def main():
         logger.critical(
             'Exporter shut down due while starting the server. Please contact '
             'your administrator.')
-        exit(1)
+
+        if args.log_level == 'DEBUG':
+            raise exc
+        else:
+            exit(1)
 
     try:
         while True:
@@ -95,4 +99,7 @@ def main():
         logger.critical(
             'Exporter shut down unexpectedly. Please contact your '
             'administrator.')
-        exit(1)
+        if args.log_level == 'DEBUG':
+            raise exc
+        else:
+            exit(1)

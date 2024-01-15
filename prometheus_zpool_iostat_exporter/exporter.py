@@ -3,7 +3,8 @@ import subprocess
 from typing import Type
 
 from prometheus_client import Summary
-from prometheus_client.core import GaugeMetricFamily, HistogramMetricFamily
+from prometheus_client.core import (
+    CounterMetricFamily, GaugeMetricFamily, HistogramMetricFamily)
 
 from . import iostat, logger, EXPORTER_PREFIX
 
@@ -194,35 +195,27 @@ class ZPoolIOStatExporter:
     def collect(self):
         data = self.zpool_list() | self.zpool_iostat(self.latency, self.queue)
 
-        for family, metrics in data.items():
-            g = GaugeMetricFamily(
-                name=family.name,
+        if any([self.latency_histogram, self.request_size_histogram]):
+            data |= (
+                self.zpool_iostat_latency_histogram() |
+                self.zpool_iostat_request_size_histogram())
+
+        for base, metrics in data.items():
+            m = base.family(
+                name=base.name,
                 labels=['pool'],
-                documentation=family.doc)
+                documentation=base.doc)
 
             for metric in metrics:
-                if metric.value is not None:
-                    g.add_metric([metric.pool], metric.value)
+                if metric.value is None:
+                    continue
 
-            yield g
-
-        if not any([self.latency_histogram, self.request_size_histogram]):
-            return
-
-        data = (
-            self.zpool_iostat_latency_histogram() |
-            self.zpool_iostat_request_size_histogram())
-        for family, metrics in data.items():
-            h = HistogramMetricFamily(
-                name=family.name,
-                labels=['pool'],
-                documentation=family.doc)
-
-            for metric in metrics:
-                if metric.value is not None:
-                    h.add_metric(
+                if base.family in (CounterMetricFamily, GaugeMetricFamily):
+                    m.add_metric([metric.pool], metric.value)
+                elif base.family == HistogramMetricFamily:
+                    m.add_metric(
                         labels=[metric.pool],
                         buckets=list(zip(metric.buckets, metric.value)),
                         sum_value=sum(metric.value))
 
-            yield h
+            yield m
