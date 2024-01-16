@@ -3,6 +3,12 @@ A Python-based Prometheus exporter for logical I/O statistics for ZFS storage po
 Output from the [zpool-iostat](https://openzfs.github.io/openzfs-docs/man/master/8/zpool-iostat.8.html) 
 utility is exported via the Prometheus client.
 
+After the removal of `/proc/spl/kstat/zfs/*/io` as of OpenZFS 
+https://github.com/openzfs/zfs/commit/371f88d96fe0aeb46a72fec78f90e1d777493ee5, 
+the node exporter skips over ZFS I/O stats (see, e.g., 
+https://github.com/prometheus/node_exporter/issues/2068). This exporter uses 
+the output from `zpool iostat` to fill this gap.
+
 ## Installation
 ```commandline
 git clone git@github.com:psyinfra/prometheus-zpool-iostat-exporter.git
@@ -190,3 +196,11 @@ The histogram output is divided over buckets and thus too large to provide an
 overview of here. It contains individual and aggregate (a)synchronous read and 
 write I/O request size when using `-r`, and total, disk, (a)synchronous queue 
 read and write latency when using `-w`.
+
+### Example: All additional output
+```commandline
+prometheus_zpool_iostat_exporter --web.listen-address :10007 -lqwr
+```
+
+Multiple arguments can be used to provide all or part of the additional 
+output. Here all additional output is exported.
