@@ -10,7 +10,7 @@ from . import logger, EXPORTER_PREFIX
 @dataclass
 class Metric:
     pool: str
-    value: int
+    value: float
     name: ClassVar[str]
     doc: ClassVar[str]
     family: ClassVar[type] = GaugeMetricFamily
@@ -37,17 +37,7 @@ class Metric:
 
 
 @dataclass
-class IntMetric(Metric):
-    value: int
-
-
-@dataclass
-class FloatMetric(Metric):
-    value: float
-
-
-@dataclass
-class RatioMetric(FloatMetric):
+class RatioMetric(Metric):
     def __post_init__(self):
         """Convert percentage to ratio"""
         self.value = float(self.value)/100
@@ -75,7 +65,7 @@ class StateMetric(Metric):
 
 
 @dataclass
-class TimeMetric(FloatMetric):
+class TimeMetric(Metric):
     def __post_init__(self):
         """Convert nanoseconds to seconds"""
         self.value = float(self.value)*1e-9
@@ -95,36 +85,36 @@ class HistogramMetric(Metric):
 
 
 """
-Parsed output from `zpool list -H -p`
+Parsed output from `zpool list -Hp`
 """
 
 
 @dataclass
-class Size(IntMetric):
+class Size(Metric):
     name: ClassVar[str] = f'{EXPORTER_PREFIX}_size_bytes'
     doc: ClassVar[str] = 'Byte size of a pool'
 
 
 @dataclass
-class Alloc(IntMetric):
+class Alloc(Metric):
     name: ClassVar[str] = f'{EXPORTER_PREFIX}_allocated_bytes'
     doc: ClassVar[str] = 'Bytes allocated in a pool'
 
 
 @dataclass
-class Free(IntMetric):
+class Free(Metric):
     name: ClassVar[str] = f'{EXPORTER_PREFIX}_free_bytes'
     doc: ClassVar[str] = 'Bytes free in a pool'
 
 
 @dataclass
-class CkPoint(IntMetric):
+class CkPoint(Metric):
     name: ClassVar[str] = f'{EXPORTER_PREFIX}_checkpoint_bytes'
     doc: ClassVar[str] = 'Bytes allocated to a checkpoint in a pool'
 
 
 @dataclass
-class ExpandSz(IntMetric):
+class ExpandSz(Metric):
     name: ClassVar[str] = f'{EXPORTER_PREFIX}_expandsize_bytes'
     doc: ClassVar[str] = (
             'Unused capacity that can be expanded into when resizing disks')
@@ -145,7 +135,7 @@ class Cap(RatioMetric):
 
 
 @dataclass
-class Dedup(FloatMetric):
+class Dedup(Metric):
     name: ClassVar[str] = f'{EXPORTER_PREFIX}_dedup_ratio'
     doc: ClassVar[str] = (
             'Indicator of how much deduplication has occurred as a ratio of '
@@ -161,24 +151,24 @@ class Health(StateMetric):
 
 
 """
-Parsed output from `zpool iostat -H -p`
+Parsed output from `zpool iostat -Hp`
 """
 
 
 @dataclass
-class CapacityAlloc(IntMetric):
+class CapacityAlloc(Metric):
     name: ClassVar[str] = f'{EXPORTER_PREFIX}_capacity_allocated_bytes'
     doc: ClassVar[str] = 'Amount of data currently stored in the pool'
 
 
 @dataclass
-class CapacityFree(IntMetric):
+class CapacityFree(Metric):
     name: ClassVar[str] = f'{EXPORTER_PREFIX}_capacity_free_bytes'
     doc: ClassVar[str] = 'Amount of disk space available in the pool'
 
 
 @dataclass
-class OperationsRead(IntMetric):
+class OperationsRead(Metric):
     name: ClassVar[str] = f'{EXPORTER_PREFIX}_operations_read_count'
     doc: ClassVar[str] = (
             'Number of read I/O operations sent to the pool, including '
@@ -187,14 +177,14 @@ class OperationsRead(IntMetric):
 
 
 @dataclass
-class OperationsWrite(IntMetric):
+class OperationsWrite(Metric):
     name: ClassVar[str] = f'{EXPORTER_PREFIX}_operations_write_count'
     doc: ClassVar[str] = 'Number of write I/O operations sent to the pool'
     family: ClassVar[type] = CounterMetricFamily
 
 
 @dataclass
-class BandwidthRead(IntMetric):
+class BandwidthRead(Metric):
     name: ClassVar[str] = f'{EXPORTER_PREFIX}_bandwidth_read_count'
     doc: ClassVar[str] = (
             'Bandwidth of all read operations (including metadata) as units '
@@ -203,7 +193,7 @@ class BandwidthRead(IntMetric):
 
 
 @dataclass
-class BandwidthWrite(IntMetric):
+class BandwidthWrite(Metric):
     name: ClassVar[str] = f'{EXPORTER_PREFIX}_bandwidth_write_count'
     doc: ClassVar[str] = (
             'Bandwidth of all write operations as units per second')
@@ -211,7 +201,7 @@ class BandwidthWrite(IntMetric):
 
 
 """
-Parsed average latency output from `zpool iostat -H -p -l`
+Parsed average latency output from `zpool iostat -Hpl`
 """
 
 
@@ -289,12 +279,12 @@ class Trim(TimeMetric):
 
 
 """
-Parsed average latency output from `zpool iostat -H -p -q`
+Parsed average latency output from `zpool iostat -Hpq`
 """
 
 
 @dataclass
-class SyncQReadPend(IntMetric):
+class SyncQReadPend(Metric):
     name: ClassVar[str] = f'{EXPORTER_PREFIX}_syncq_read_pending_count'
     doc: ClassVar[str] = (
             'Current number of pending read entries in synchronous priority '
@@ -302,7 +292,7 @@ class SyncQReadPend(IntMetric):
 
 
 @dataclass
-class SyncQReadActiv(IntMetric):
+class SyncQReadActiv(Metric):
     name: ClassVar[str] = f'{EXPORTER_PREFIX}_syncq_read_active_count'
     doc: ClassVar[str] = (
             'Current number of active read entries in synchronous priority '
@@ -310,7 +300,7 @@ class SyncQReadActiv(IntMetric):
 
 
 @dataclass
-class SyncQWritePend(IntMetric):
+class SyncQWritePend(Metric):
     name: ClassVar[str] = f'{EXPORTER_PREFIX}_syncq_write_pending_count'
     doc: ClassVar[str] = (
             'Current number of pending write entries in synchronous priority '
@@ -318,7 +308,7 @@ class SyncQWritePend(IntMetric):
 
 
 @dataclass
-class SyncQWriteActiv(IntMetric):
+class SyncQWriteActiv(Metric):
     name: ClassVar[str] = f'{EXPORTER_PREFIX}_syncq_write_active_count'
     doc: ClassVar[str] = (
             'Current number of active write entries in synchronous priority '
@@ -326,7 +316,7 @@ class SyncQWriteActiv(IntMetric):
 
 
 @dataclass
-class ASyncQReadPend(IntMetric):
+class ASyncQReadPend(Metric):
     name: ClassVar[str] = f'{EXPORTER_PREFIX}_asyncq_read_pending_count'
     doc: ClassVar[str] = (
         'Current number of pending read entries in asynchronous priority '
@@ -334,7 +324,7 @@ class ASyncQReadPend(IntMetric):
 
 
 @dataclass
-class ASyncQReadActiv(IntMetric):
+class ASyncQReadActiv(Metric):
     name: ClassVar[str] = f'{EXPORTER_PREFIX}_asyncq_read_active_count'
     doc: ClassVar[str] = (
         'Current number of active read entries in asynchronous priority '
@@ -342,7 +332,7 @@ class ASyncQReadActiv(IntMetric):
 
 
 @dataclass
-class ASyncQWritePend(IntMetric):
+class ASyncQWritePend(Metric):
     name: ClassVar[str] = f'{EXPORTER_PREFIX}_asyncq_write_pending_count'
     doc: ClassVar[str] = (
         'Current number of pending write entries in asynchronous priority '
@@ -350,7 +340,7 @@ class ASyncQWritePend(IntMetric):
 
 
 @dataclass
-class ASyncQWriteActiv(IntMetric):
+class ASyncQWriteActiv(Metric):
     name: ClassVar[str] = f'{EXPORTER_PREFIX}_asyncq_wrote_active_count'
     doc: ClassVar[str] = (
         'Current number of active write entries in asynchronous priority '
@@ -358,31 +348,31 @@ class ASyncQWriteActiv(IntMetric):
 
 
 @dataclass
-class ScrubQPending(IntMetric):
+class ScrubQPending(Metric):
     name: ClassVar[str] = f'{EXPORTER_PREFIX}_scrubq_pending_count'
     doc: ClassVar[str] = 'Current number of pending entries in scrub queue.'
 
 
 @dataclass
-class ScrubQActiv(IntMetric):
+class ScrubQActiv(Metric):
     name: ClassVar[str] = f'{EXPORTER_PREFIX}_scrubq_active_count'
     doc: ClassVar[str] = 'Current number of active entries in scrub queue.'
 
 
 @dataclass
-class TrimQPend(IntMetric):
+class TrimQPend(Metric):
     name: ClassVar[str] = f'{EXPORTER_PREFIX}_trimq_pending_count'
     doc: ClassVar[str] = 'Current number of pending entries in trim queue.'
 
 
 @dataclass
-class TrimQActiv(IntMetric):
+class TrimQActiv(Metric):
     name: ClassVar[str] = f'{EXPORTER_PREFIX}_trimq_active_count'
     doc: ClassVar[str] = 'Current number of active entries in trim queue.'
 
 
 """
-Latency histograms from `zpool iostat -w -p -H`
+Latency histograms from `zpool iostat -wpH`
 """
 
 
@@ -466,7 +456,7 @@ class LatencyTrim(HistogramMetric):
 
 
 """
-Request size histograms from `zpool iostat -r -p -H`
+Request size histograms from `zpool iostat -rpH`
 """
 
 
