@@ -16,10 +16,12 @@ REQUEST_TIME = Summary(
 
 class ZPoolIOStatExporter:
     def __init__(self,
+                 pools: list = None,
                  latency: bool = False,
                  queue: bool = False,
                  latency_histogram: bool = False,
                  request_size_histogram: bool = False):
+        self.pools = pools if pools is not None else []
         self.latency = latency
         self.queue = queue
         self.latency_histogram = latency_histogram
@@ -35,12 +37,22 @@ class ZPoolIOStatExporter:
             logger.error(f"'{' '.join(command)}' failed: {exc}")
             return ''
 
+        if stderr:
+            # Something is wrong with the command that won't resolve itself
+            #   over time.
+            raise Exception(
+                f"'{' '.join(command)}' failed: "
+                f"{stderr.decode('utf-8').strip()}")
+
         return stdout.decode('utf-8').strip()
 
     @staticmethod
-    def format_gauges(data: str,
+    def format_output(data: str,
                       metrics: list[Type[iostat.Metric]]
                       ) -> dict[Type[iostat.Metric], list[iostat.Metric]]:
+        if not data:
+            return {}
+
         data = [pool.split('\t') for pool in data.split('\n')]
         return {m: [m(d[0], d[i+1]) for d in data]
                 for i, m in enumerate(metrics)}
@@ -55,6 +67,9 @@ class ZPoolIOStatExporter:
         histogram table such that each row represents a different metric,
         and outputting them in a structured dataclass.
         """
+        if not data:
+            return {}
+
         histograms = {m: [] for m in metrics}
 
         for pool in data.split('\n\n'):
@@ -75,7 +90,7 @@ class ZPoolIOStatExporter:
         -H: scripted mode; -p: displays numbers in (exact) values. The last
         given property is 'altroot', which is ignored.
         """
-        command = ['zpool', 'list', '-H', '-p']
+        command = ['zpool', 'list', '-H', '-p', *self.pools]
         metrics = [
             iostat.Size,
             iostat.Alloc,
@@ -86,7 +101,7 @@ class ZPoolIOStatExporter:
             iostat.Cap,
             iostat.Dedup,
             iostat.Health]
-        return self.format_gauges(self.run_cmd(command), metrics)
+        return self.format_output(self.run_cmd(command), metrics)
 
     def zpool_iostat(self,
                      latency: bool = False,
@@ -100,7 +115,7 @@ class ZPoolIOStatExporter:
         True, then the -l argument is added to include average latency
         statistics.
         """
-        command = ['zpool', 'iostat', '-H', '-p']
+        command = ['zpool', 'iostat', '-H', '-p', *self.pools]
         metrics = [
             iostat.CapacityAlloc,
             iostat.CapacityFree,
@@ -139,7 +154,7 @@ class ZPoolIOStatExporter:
                 iostat.TrimQPend,
                 iostat.TrimQActiv])
 
-        return self.format_gauges(self.run_cmd(command), metrics)
+        return self.format_output(self.run_cmd(command), metrics)
 
     def zpool_iostat_latency_histogram(self
                                        ) -> dict[Type[iostat.HistogramMetric],
@@ -150,7 +165,7 @@ class ZPoolIOStatExporter:
         -w: display latency histograms; -p: displays numbers in (exact) values;
         -H: scripted mode.
         """
-        command = ['zpool', 'iostat', '-w', '-p', '-H']
+        command = ['zpool', 'iostat', '-w', '-p', '-H', *self.pools]
         metrics = [
             iostat.LatencyTotalWaitRead,
             iostat.LatencyTotalWaitWrite,
@@ -174,7 +189,7 @@ class ZPoolIOStatExporter:
         -r: display request size histograms for leaf vdev's I/O; -p: displays
         numbers in (exact) values; -H: scripted mode.
         """
-        command = ['zpool', 'iostat', '-r', '-p', '-H']
+        command = ['zpool', 'iostat', '-r', '-p', '-H', *self.pools]
         metrics = [
             iostat.RequestSizeSyncReadIndividual,
             iostat.RequestSizeSyncReadAggregate,
