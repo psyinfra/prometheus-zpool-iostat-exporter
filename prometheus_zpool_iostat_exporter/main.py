@@ -80,8 +80,8 @@ def main():
             pools=args.pools,
             latency=args.latency,
             queue=args.queue,
-            latency_histogram=args.iowait,
-            request_size_histogram=args.request_size))
+            iowait=args.iowait,
+            request_size=args.request_size))
         start_http_server(port, addr=addr)
         logger.info(f'Listening on {listen_addr.netloc}')
     except KeyboardInterrupt:

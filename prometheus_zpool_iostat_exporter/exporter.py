@@ -1,6 +1,6 @@
 import itertools
 import subprocess
-from typing import Type
+from typing import Type, Union
 
 from prometheus_client import Summary
 from prometheus_client.core import (
@@ -19,23 +19,23 @@ class ZPoolIOStatExporter:
                  pools: list = None,
                  latency: bool = False,
                  queue: bool = False,
-                 latency_histogram: bool = False,
-                 request_size_histogram: bool = False):
+                 iowait: bool = False,
+                 request_size: bool = False):
         self.pools = pools if pools is not None else []
         self.latency = latency
         self.queue = queue
-        self.latency_histogram = latency_histogram
-        self.request_size_histogram = request_size_histogram
+        self.iowait = iowait
+        self.request_size = request_size
 
     @staticmethod
-    def run_cmd(command: list[str]) -> str:
+    def run_cmd(command: list[str]) -> Union[str, None]:
         try:
             process = subprocess.Popen(
                 command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             stdout, stderr = process.communicate()
         except Exception as exc:
             logger.error(f"'{' '.join(command)}' failed: {exc}")
-            return ''
+            return
 
         if stderr:
             # Something is wrong with the command that won't resolve itself
@@ -47,9 +47,9 @@ class ZPoolIOStatExporter:
         return stdout.decode('utf-8').strip()
 
     @staticmethod
-    def format_output(data: str,
-                      metrics: list[Type[iostat.Metric]]
-                      ) -> dict[Type[iostat.Metric], list[iostat.Metric]]:
+    def parse_table(data: str,
+                    metrics: list[Type[iostat.Metric]]
+                    ) -> dict[Type[iostat.Metric], list[iostat.Metric]]:
         if not data:
             return {}
 
@@ -58,10 +58,10 @@ class ZPoolIOStatExporter:
                 for i, m in enumerate(metrics)}
 
     @staticmethod
-    def format_histogram(data: str,
-                         metrics: list[Type[iostat.Metric]]
-                         ) -> dict[Type[iostat.HistogramMetric],
-                                   list[iostat.HistogramMetric]]:
+    def parse_hist(data: str,
+                   metrics: list[Type[iostat.Metric]]
+                   ) -> dict[Type[iostat.HistogramMetric],
+                             list[iostat.HistogramMetric]]:
         """
         Parse histogram data by splitting it into pools, transposing the
         histogram table such that each row represents a different metric,
@@ -83,7 +83,7 @@ class ZPoolIOStatExporter:
 
         return histograms
 
-    def zpool_list(self) -> dict[Type[iostat.Metric], list[iostat.Metric]]:
+    def zlist(self) -> dict[Type[iostat.Metric], list[iostat.Metric]]:
         """
         Lists all pools along with a health status and space usage.
 
@@ -101,12 +101,12 @@ class ZPoolIOStatExporter:
             iostat.Cap,
             iostat.Dedup,
             iostat.Health]
-        return self.format_output(self.run_cmd(command), metrics)
+        return self.parse_table(self.run_cmd(command), metrics)
 
-    def zpool_iostat(self,
-                     latency: bool = False,
-                     queue: bool = False
-                     ) -> dict[Type[iostat.Metric], list[iostat.Metric]]:
+    def ziostat(self,
+                latency: bool = False,
+                queue: bool = False
+                ) -> dict[Type[iostat.Metric], list[iostat.Metric]]:
         """
         Request a list of pools and their associated properties.
 
@@ -154,18 +154,17 @@ class ZPoolIOStatExporter:
                 iostat.TrimQPend,
                 iostat.TrimQActiv])
 
-        return self.format_output(self.run_cmd(command), metrics)
+        return self.parse_table(self.run_cmd(command), metrics)
 
-    def zpool_iostat_latency_histogram(self
-                                       ) -> dict[Type[iostat.HistogramMetric],
-                                                 list[iostat.HistogramMetric]]:
+    def zhist_wait(self) -> dict[Type[iostat.HistogramMetric],
+                                 list[iostat.HistogramMetric]]:
         """
         Request a list of pools and their latency histogram metrics
 
         -w: display latency histograms; -p: displays numbers in (exact) values;
         -H: scripted mode.
         """
-        command = ['zpool', 'iostat', '-w', '-p', '-H', *self.pools]
+        command = ['zpool', 'iostat', '-wpH', *self.pools]
         metrics = [
             iostat.LatencyTotalWaitRead,
             iostat.LatencyTotalWaitWrite,
@@ -178,18 +177,17 @@ class ZPoolIOStatExporter:
             iostat.LatencyScrub,
             iostat.LatencyTrim]
 
-        return self.format_histogram(self.run_cmd(command), metrics)
+        return self.parse_hist(self.run_cmd(command), metrics)
 
-    def zpool_iostat_request_size_histogram(
-            self) -> dict[Type[iostat.HistogramMetric],
-                          list[iostat.HistogramMetric]]:
+    def zhist_request(self) -> dict[Type[iostat.HistogramMetric],
+                                    list[iostat.HistogramMetric]]:
         """
         Request a list of pools and their latency histogram metrics
 
         -r: display request size histograms for leaf vdev's I/O; -p: displays
         numbers in (exact) values; -H: scripted mode.
         """
-        command = ['zpool', 'iostat', '-r', '-p', '-H', *self.pools]
+        command = ['zpool', 'iostat', '-rpH', *self.pools]
         metrics = [
             iostat.RequestSizeSyncReadIndividual,
             iostat.RequestSizeSyncReadAggregate,
@@ -204,22 +202,18 @@ class ZPoolIOStatExporter:
             iostat.RequestSizeTrimIndividual,
             iostat.RequestSizeTrimAggregate]
 
-        return self.format_histogram(self.run_cmd(command), metrics)
+        return self.parse_hist(self.run_cmd(command), metrics)
 
     @REQUEST_TIME.time()
     def collect(self):
-        data = self.zpool_list() | self.zpool_iostat(self.latency, self.queue)
+        data = self.zlist() | self.ziostat(self.latency, self.queue)
 
-        if any([self.latency_histogram, self.request_size_histogram]):
-            data |= (
-                self.zpool_iostat_latency_histogram() |
-                self.zpool_iostat_request_size_histogram())
+        if any([self.iowait, self.request_size]):
+            data |= self.zhist_wait() | self.zhist_request()
 
         for base, metrics in data.items():
             m = base.family(
-                name=base.name,
-                labels=['pool'],
-                documentation=base.doc)
+                name=base.name, labels=['pool'], documentation=base.doc)
 
             for metric in metrics:
                 if metric.value is None:
