@@ -18,21 +18,21 @@ pip install .
 
 ## Usage
 
-    usage: prometheus_zpool_iostat_exporter [-h] [--web.listen-address LISTEN_ADDRESS] [--pools [POOLS ...]] [--log {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [-l] [-q] [-w] [-r]
+    usage: prometheus_zpool_iostat_exporter [-h] [--log {DEBUG,INFO,WARNING,ERROR,CRITICAL}] [--pools [POOLS ...]] [--web.listen-address LISTEN_ADDRESS] [-l] [-q] [-r] [-w]
     
     A Python-based Prometheus exporter for logical I/O statistics for ZFS storage pools
     
     options:
       -h, --help            show this help message and exit
-      --web.listen-address LISTEN_ADDRESS
-                            Address and port to listen on (default = :10007)
-      --pools [POOLS ...]   Specify pools to include in collection (default = all pools)
       --log {DEBUG,INFO,WARNING,ERROR,CRITICAL}
                             Specify logging level
+      --pools [POOLS ...]   Specify pools to include in collection (default = all pools)
+      --web.listen-address LISTEN_ADDRESS
+                            Address and port to listen on (default = :10007)
       -l                    Include average latency statistics (see: zpool iostat -l)
       -q                    Include active queue statistics (see: zpool iostat -q)
-      -w                    Include latency histograms (see: zpool iostat -w)
       -r                    Include request size histograms for the leaf vdev's I/O (see: zpool iostat -r)
+      -w                    Include latency histograms (see: zpool iostat -w)
 
 ### Example: Default
 ```commandline

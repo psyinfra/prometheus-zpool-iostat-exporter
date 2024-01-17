@@ -15,12 +15,13 @@ def parse_args():
             'A Python-based Prometheus exporter for logical I/O statistics '
             'for ZFS storage pools'))
     parser.add_argument(
-        '--web.listen-address',
-        dest='listen_address',
+        '--log',
+        dest='log_level',
         required=False,
         type=str,
-        default=f':{DEFAULT_PORT}',
-        help=f'Address and port to listen on (default = :{DEFAULT_PORT})')
+        choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
+        default='WARNING',
+        help='Specify logging level')
     parser.add_argument(
         '--pools',
         dest='pools',
@@ -30,13 +31,12 @@ def parse_args():
         default=[],
         help='Specify pools to include in collection (default = all pools)')
     parser.add_argument(
-        '--log',
-        dest='log_level',
+        '--web.listen-address',
+        dest='listen_address',
         required=False,
         type=str,
-        choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
-        default='WARNING',
-        help='Specify logging level')
+        default=f':{DEFAULT_PORT}',
+        help=f'Address and port to listen on (default = :{DEFAULT_PORT})')
     parser.add_argument(
         '-l',
         dest='latency',
@@ -50,12 +50,6 @@ def parse_args():
         action='store_true',
         help='Include active queue statistics (see: zpool iostat -q)')
     parser.add_argument(
-        '-w',
-        dest='iowait',
-        default=False,
-        action='store_true',
-        help='Include latency histograms (see: zpool iostat -w)')
-    parser.add_argument(
         '-r',
         dest='request_size',
         default=False,
@@ -63,6 +57,12 @@ def parse_args():
         help=(
             'Include request size histograms for the leaf vdev\'s I/O (see: '
             'zpool iostat -r)'))
+    parser.add_argument(
+        '-w',
+        dest='iowait',
+        default=False,
+        action='store_true',
+        help='Include latency histograms (see: zpool iostat -w)')
 
     return parser.parse_args()
 
