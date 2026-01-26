@@ -1,3 +1,9 @@
+# Migrated to Codeberg
+
+This project is no longer developed on GitHub and has been migrated to Codeberg:
+
+https://codeberg.org/psyinfra/prometheus-zpool-iostat-exporter
+
 # prometheus-zpool-iostat-exporter
 A Python-based Prometheus exporter for logical I/O statistics for ZFS storage pools.
 Output from the [zpool-iostat](https://openzfs.github.io/openzfs-docs/man/master/8/zpool-iostat.8.html) 
